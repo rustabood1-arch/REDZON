@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.Process
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -21,6 +22,8 @@ class MainActivity : Activity() {
 private lateinit var statusText: TextView
 private lateinit var cpuText: TextView
 private lateinit var ramText: TextView
+private lateinit var startBtn: Button
+private lateinit var dashLayout: LinearLayout
 @Volatile private var isRunning = true
 
 override fun onCreate(savedInstanceState: Bundle?) {
@@ -105,6 +108,10 @@ val mainLayout = LinearLayout(this).apply {
 orientation = LinearLayout.VERTICAL
 setPadding(40, 60, 40, 40)
 gravity = Gravity.CENTER_HORIZONTAL
+layoutParams = ViewGroup.LayoutParams(
+ViewGroup.LayoutParams.MATCH_PARENT,
+ViewGroup.LayoutParams.WRAP_CONTENT
+)
 }
 
 val appTitle = TextView(this).apply {
@@ -115,24 +122,38 @@ typeface = Typeface.DEFAULT_BOLD
 gravity = Gravity.CENTER
 }
 
-val startBtn = Button(this).apply {
+startBtn = Button(this).apply {
 text = "START FPS REDZON"
 setBackgroundColor(Color.parseColor("#1A1A1A"))
 setTextColor(Color.parseColor("#D4AF37"))
 textSize = 18f
 setPadding(20, 30, 20, 30)
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+).apply {
+setMargins(0, 20, 0, 20)
+}
 }
 
-val dashLayout = LinearLayout(this).apply {
+dashLayout = LinearLayout(this).apply {
 orientation = LinearLayout.VERTICAL
 visibility = View.GONE
 setPadding(0, 40, 0, 0)
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+)
 }
 
 val infoCard = LinearLayout(this).apply {
 orientation = LinearLayout.VERTICAL
 setBackgroundColor(Color.parseColor("#1A1A1A"))
 setPadding(30, 30, 30, 30)
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+)
 }
 
 val infoTitle = TextView(this).apply {
@@ -173,6 +194,12 @@ text = "⚡ زيادة وتثبيت الـ FPS"
 setBackgroundColor(Color.parseColor("#B8860B"))
 setTextColor(Color.BLACK)
 textSize = 16f
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+).apply {
+setMargins(0, 15, 0, 15)
+}
 setOnClickListener {
 runRootCommand("setprop debug.gr.swapinterval 0; settings put system peak_refresh_rate 120.0; settings put system user_refresh_rate 120.0")
 statusText.text = "الحالة الحالية: 🔥 تم تثبيت الـ FPS بأقصى أداء!"
@@ -184,6 +211,12 @@ text = "🛑 إيقاف المميزات والعودة للافتراضي"
 setBackgroundColor(Color.parseColor("#333333"))
 setTextColor(Color.WHITE)
 textSize = 15f
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+).apply {
+setMargins(0, 15, 0, 15)
+}
 setOnClickListener {
 runRootCommand("settings delete system peak_refresh_rate; settings delete system user_refresh_rate")
 statusText.text = "الحالة الحالية: الوضع الافتراضي"
@@ -195,6 +228,12 @@ text = "🚀 تنظيف الرام (Boost RAM)"
 setBackgroundColor(Color.parseColor("#1A1A1A"))
 setTextColor(Color.parseColor("#D4AF37"))
 textSize = 15f
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+).apply {
+setMargins(0, 15, 0, 15)
+}
 setOnClickListener {
 runRootCommand("sync; echo 3 > /proc/sys/vm/drop_caches")
 statusText.text = "الحالة الحالية: 🧹 تم تنظيف الرام!"
@@ -218,15 +257,18 @@ dashLayout.visibility = View.VISIBLE
 }
 
 dashLayout.addView(infoCard)
-dashLayout.addView(View(this).apply { minimumHeight = 30 })
 dashLayout.addView(btnFps)
-dashLayout.addView(View(this).apply { minimumHeight = 20 })
 dashLayout.addView(btnReset)
-dashLayout.addView(View(this).apply { minimumHeight = 20 })
 dashLayout.addView(btnBoost)
 
 mainLayout.addView(appTitle)
-mainLayout.addView(View(this).apply { minimumHeight = 60 })
+mainLayout.addView(View(this).apply { 
+minimumHeight = 60 
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+60
+)
+})
 mainLayout.addView(startBtn)
 mainLayout.addView(dashLayout)
 mainLayout.addView(tgBtn)
