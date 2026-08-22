@@ -1,148 +1,266 @@
-Text(
-"التطبيق يتطلب صلاحيات الروت للعمل!\nيرجى منح الصلاحية من تطبيق الروت وإعادة الفتح.",
-color = Color.White,
-textAlign = TextAlign.Center,
-fontSize = 16.sp
-)
-Spacer(modifier = Modifier.height(24.dp))
-Button(
-onClick = onExit,
-colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-) {
-Text("إغلاق التطبيق", color = Color.White)
+package com.redzon.app
+import android.app.Activity
+import android.content.Intent
+import android.graphics.Color
+import android.graphics.Typeface
+import android.net.Uri
+import android.os.Bundle
+import android.os.Process
+import android.view.Gravity
+import android.view.View
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import java.io.File
+import java.io.RandomAccessFile
+import kotlin.concurrent.thread
+
+class MainActivity : Activity() {
+
+private lateinit var statusText: TextView
+private lateinit var cpuText: TextView
+private lateinit var ramText: TextView
+@Volatile private var isRunning = true
+
+override fun onCreate(savedInstanceState: Bundle?) {
+super.onCreate(savedInstanceState)
+
+// فحص الروت المباشر
+if (!checkRootPermission()) {
+showRootDeniedUI()
+return
 }
+
+// بناء الواجهة الرئيسية
+showMainUI()
+startSystemMonitoring()
+}
+
+private fun checkRootPermission(): Boolean {
+return try {
+val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
+process.waitFor() == 0
+} catch (e: Exception) {
+false
 }
 }
 
-// واجهة الدخول الفخمة
-@Composable
-fun StartScreen(onStart: () -> Unit) {
-Column(
-modifier = Modifier.fillMaxSize().padding(24.dp),
-horizontalAlignment = Alignment.CenterHorizontally,
-verticalArrangement = Arrangement.Center
-) {
-Text("REDZON FPS", color = GoldColor, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold)
-Text("POWERED BY ROOT", color = Color.Gray, fontSize = 14.sp)
-Spacer(modifier = Modifier.height(50.dp))
-
-Button(
-onClick = onStart,
-modifier = Modifier.fillMaxWidth().height(60.dp).border(2.dp, GoldColor, RoundedCornerShape(12.dp)),
-colors = ButtonDefaults.buttonColors(containerColor = CardBlack),
-shape = RoundedCornerShape(12.dp)
-) {
-Text("START FPS REDZON", color = GoldColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-}
+private fun runRootCommand(command: String): Boolean {
+return try {
+val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
+process.waitFor() == 0
+} catch (e: Exception) {
+false
 }
 }
 
-// الواجهة الرئيسية للتحكم
-@Composable
-fun MainDashboard(onOpenTelegram: () -> Unit) {
-var cpuUsage by remember { mutableStateOf("0%") }
-var ramUsage by remember { mutableStateOf("0 MB / 0 MB") }
-var statusText by remember { mutableStateOf("الوضع الافتراضي") }
+private fun showRootDeniedUI() {
+val rootLayout = LinearLayout(this).apply {
+orientation = LinearLayout.VERTICAL
+setBackgroundColor(Color.parseColor("#101010"))
+gravity = Gravity.CENTER
+setPadding(50, 50, 50, 50)
+}
 
-// التحديث الحي للمعالج والرام
-LaunchedEffect(Unit) {
-while (true) {
-cpuUsage = getCpuUsage()
-ramUsage = getRamUsage()
-delay(2000)
+val title = TextView(this).apply {
+text = "⚠️ خطأ بالصلاحيات"
+setTextColor(Color.RED)
+textSize = 22f
+typeface = Typeface.DEFAULT_BOLD
+gravity = Gravity.CENTER
+}
+
+val desc = TextView(this).apply {
+text = "التطبيق يتطلب صلاحيات الروت للعمل!\nيرجى منح الصلاحية من تطبيق الروت وإعادة الفتح."
+setTextColor(Color.WHITE)
+textSize = 16f
+gravity = Gravity.CENTER
+setPadding(0, 30, 0, 50)
+}
+
+val exitBtn = Button(this).apply {
+text = "إغلاق التطبيق"
+setBackgroundColor(Color.RED)
+setTextColor(Color.WHITE)
+setOnClickListener {
+finishAffinity()
+Process.killProcess(Process.myPid())
 }
 }
 
-Column(
-modifier = Modifier.fillMaxSize().padding(16.dp),
-horizontalAlignment = Alignment.CenterHorizontally
-) {
-Text("REDZON DASHBOARD", color = GoldColor, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-Spacer(modifier = Modifier.height(16.dp))
-
-// كارت قراءة النظام
-Card(
-modifier = Modifier.fillMaxWidth().border(1.dp, GoldColor, RoundedCornerShape(12.dp)),
-colors = CardDefaults.cardColors(containerColor = CardBlack)
-) {
-Column(modifier = Modifier.padding(16.dp)) {
-Text("📊 مراقب النظام", color = GoldColor, fontWeight = FontWeight.Bold)
-Spacer(modifier = Modifier.height(8.dp))
-Text("استخدام المعالج (CPU): $cpuUsage", color = Color.White)
-Text("استخدام الذاكرة (RAM): $ramUsage", color = Color.White)
-Spacer(modifier = Modifier.height(8.dp))
-Text("الحالة الحالية: $statusText", color = GoldColor, fontWeight = FontWeight.Bold)
-}
+rootLayout.addView(title)
+rootLayout.addView(desc)
+rootLayout.addView(exitBtn)
+setContentView(rootLayout)
 }
 
-Spacer(modifier = Modifier.height(20.dp))
-
-// أزرار الأداء
-Button(
-onClick = {
-// أمر تثبيت الـ FPS وإلغاء الخنق
-runRootCommand("setprop debug.gr.swapinterval 0; settings put system peak_refresh_rate 120.0; settings put system user_refresh_rate 120.0")
-statusText = "🔥 تم تثبيت الـ FPS والوصول لأقصى أداء!"
-},
-modifier = Modifier.fillMaxWidth().height(55.dp),
-colors = ButtonDefaults.buttonColors(containerColor = DarkGoldColor),
-shape = RoundedCornerShape(10.dp)
-) {
-Text("⚡ زيادة وتثبيت الـ FPS", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+private fun showMainUI() {
+val scrollView = ScrollView(this).apply {
+setBackgroundColor(Color.parseColor("#101010"))
+isFillViewport = true
 }
 
-Spacer(modifier = Modifier.height(12.dp))
+val mainLayout = LinearLayout(this).apply {
+orientation = LinearLayout.VERTICAL
+setPadding(40, 60, 40, 40)
+gravity = Gravity.CENTER_HORIZONTAL
+}
 
-Button(
-onClick = {
-// إرجاع النظام للوضع الافتراضي
-runRootCommand("settings delete system peak_refresh_rate; settings delete system user_refresh_rate")
+val appTitle = TextView(this).apply {
+text = "REDZON FPS"
+setTextColor(Color.parseColor("#D4AF37"))
+textSize = 32f
+typeface = Typeface.DEFAULT_BOLD
+gravity = Gravity.CENTER
+}
+
+val startBtn = Button(this).apply {
+text = "START FPS REDZON"
+setBackgroundColor(Color.parseColor("#1A1A1A"))
+setTextColor(Color.parseColor("#D4AF37"))
+textSize = 18f
+setPadding(20, 30, 20, 30)
+}
+
+val dashLayout = LinearLayout(this).apply {
+orientation = LinearLayout.VERTICAL
+visibility = View.GONE
+setPadding(0, 40, 0, 0)
+}
 
 Shartar ":
-statusText = "الوضع الافتراضي"
-},
-modifier = Modifier.fillMaxWidth().height(55.dp),
-colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
-shape = RoundedCornerShape(10.dp)
-) {
-Text("🛑 إيقاف المميزات والعودة للافتراضي", color = Color.White, fontWeight = FontWeight.Medium)
+val infoCard = LinearLayout(this).apply {
+orientation = LinearLayout.VERTICAL
+setBackgroundColor(Color.parseColor("#1A1A1A"))
+setPadding(30, 30, 30, 30)
 }
 
-Spacer(modifier = Modifier.height(12.dp))
+val infoTitle = TextView(this).apply {
+text = "📊 مراقب النظام"
+setTextColor(Color.parseColor("#D4AF37"))
+textSize = 18f
+typeface = Typeface.DEFAULT_BOLD
+}
 
-// ميزة إضافية: تنظيف الرام
-Button(
-onClick = {
+cpuText = TextView(this).apply {
+text = "استخدام المعالج (CPU): 0%"
+setTextColor(Color.WHITE)
+textSize = 15f
+setPadding(0, 15, 0, 5)
+}
+
+ramText = TextView(this).apply {
+text = "استخدام الذاكرة (RAM): 0 MB"
+setTextColor(Color.WHITE)
+textSize = 15f
+setPadding(0, 5, 0, 15)
+}
+
+statusText = TextView(this).apply {
+text = "الحالة الحالية: الوضع الافتراضي"
+setTextColor(Color.parseColor("#D4AF37"))
+textSize = 15f
+typeface = Typeface.DEFAULT_BOLD
+}
+
+infoCard.addView(infoTitle)
+infoCard.addView(cpuText)
+infoCard.addView(ramText)
+infoCard.addView(statusText)
+
+val btnFps = Button(this).apply {
+text = "⚡ زيادة وتثبيت الـ FPS"
+setBackgroundColor(Color.parseColor("#B8860B"))
+setTextColor(Color.BLACK)
+textSize = 16f
+setOnClickListener {
+runRootCommand("setprop debug.gr.swapinterval 0; settings put system peak_refresh_rate 120.0; settings put system user_refresh_rate 120.0")
+statusText.text = "الحالة الحالية: 🔥 تم تثبيت الـ FPS بأقصى أداء!"
+}
+}
+
+val btnReset = Button(this).apply {
+text = "🛑 إيقاف المميزات والعودة للافتراضي"
+setBackgroundColor(Color.parseColor("#333333"))
+setTextColor(Color.WHITE)
+textSize = 15f
+setOnClickListener {
+runRootCommand("settings delete system peak_refresh_rate; settings delete system user_refresh_rate")
+statusText.text = "الحالة الحالية: الوضع الافتراضي"
+}
+}
+
+val btnBoost = Button(this).apply {
+text = "🚀 تنظيف الرام (Boost RAM)"
+setBackgroundColor(Color.parseColor("#1A1A1A"))
+setTextColor(Color.parseColor("#D4AF37"))
+textSize = 15f
+setOnClickListener {
 runRootCommand("sync; echo 3 > /proc/sys/vm/drop_caches")
-statusText = "🧹 تم تنظيف الرام وتحرير المساحة!"
-},
-modifier = Modifier.fillMaxWidth().height(50.dp).border(1.dp, GoldColor, RoundedCornerShape(10.dp)),
-colors = ButtonDefaults.buttonColors(containerColor = CardBlack),
-shape = RoundedCornerShape(10.dp)
-) {
-Text("🚀 تنظيف الرام (Boost RAM)", color = GoldColor)
-}
-
-Spacer(modifier = Modifier.weight(1f))
-
-// زر التليجرام بالأسفل
-TextButton(onClick = onOpenTelegram) {
-Text("للدعم والدعم الفني: @xxxzwxxx", color = GoldColor, fontSize = 14.sp)
-}
+statusText.text = "الحالة الحالية: 🧹 تم تنظيف الرام!"
 }
 }
 
-// قراءة الرام
-fun getRamUsage(): String {
+val tgBtn = TextView(this).apply {
+text = "للدعم والدعم الفني: @xxxzwxxx"
+setTextColor(Color.parseColor("#D4AF37"))
+textSize = 14f
+gravity = Gravity.CENTER
+setPadding(0, 50, 0, 20)
+setOnClickListener {
+startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/xxxzwxxx")))
+}
+}
+
+startBtn.setOnClickListener {
+startBtn.visibility = View.GONE
+dashLayout.visibility = View.VISIBLE
+}
+
+dashLayout.addView(infoCard)
+dashLayout.addView(View(this).apply { minimumHeight = 30 })
+dashLayout.addView(btnFps)
+dashLayout.addView(View(this).apply { minimumHeight = 20 })
+dashLayout.addView(btnReset)
+dashLayout.addView(View(this).apply { minimumHeight = 20 })
+dashLayout.addView(btnBoost)
+
+mainLayout.addView(appTitle)
+mainLayout.addView(View(this).apply { minimumHeight = 60 })
+mainLayout.addView(startBtn)
+mainLayout.addView(dashLayout)
+mainLayout.addView(tgBtn)
+
+scrollView.addView(mainLayout)
+setContentView(scrollView)
+}
+
+Shartar ":
+private fun startSystemMonitoring() {
+thread {
+while (isRunning) {
+val cpu = getCpuUsage()
+val ram = getRamUsage()
+runOnUiThread {
+if (::cpuText.isInitialized) cpuText.text = "استخدام المعالج (CPU): $cpu"
+if (::ramText.isInitialized) ramText.text = "استخدام الذاكرة (RAM): $ram"
+}
+Thread.sleep(2000)
+}
+}
+}
+
+private fun getRamUsage(): String {
 return try {
 val reader = RandomAccessFile("/proc/meminfo", "r")
-val totalMemLine = reader.readLine()
-val freeMemLine = reader.readLine()
-val availMemLine = reader.readLine()
+val totalLine = reader.readLine()
+reader.readLine()
+val availLine = reader.readLine()
 reader.close()
 
-val totalKb = totalMemLine.replace("\\D+".toRegex(), "").toLong()
-val availKb = availMemLine.replace("\\D+".toRegex(), "").toLong()
+val totalKb = totalLine.replace("\\D+".toRegex(), "").toLong()
+val availKb = availLine.replace("\\D+".toRegex(), "").toLong()
 
 val usedMb = (totalKb - availKb) / 1024
 val totalMb = totalKb / 1024
@@ -152,8 +270,7 @@ val totalMb = totalKb / 1024
 }
 }
 
-// قراءة الـ CPU
-fun getCpuUsage(): String {
+private fun getCpuUsage(): String {
 return try {
 val file = File("/proc/stat")
 if (file.exists()) {
@@ -168,5 +285,11 @@ val usage = ((total - idle) * 100 / total).toInt()
 } else "12%"
 } catch (e: Exception) {
 "10%"
+}
+}
+
+override fun onDestroy() {
+super.onDestroy()
+isRunning = false
 }
 }
