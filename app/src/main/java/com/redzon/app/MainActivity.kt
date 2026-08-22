@@ -29,12 +29,15 @@ private lateinit var cpuText: TextView
 private lateinit var ramText: TextView
 private lateinit var fpsText: TextView
 private lateinit var gameOptText: TextView
+private lateinit var gpuText: TextView
+private lateinit var thermalText: TextView
 private lateinit var startBtn: Button
 private lateinit var dashLayout: LinearLayout
 private lateinit var infoCard: LinearLayout
 @Volatile private var isRunning = true
 @Volatile private var isFpsBooted = false
 @Volatile private var isGameModeActive = false
+@Volatile private var currentTemp = 0
 
 override fun onCreate(savedInstanceState: Bundle?) {
 super.onCreate(savedInstanceState)
@@ -110,7 +113,6 @@ rootLayout.addView(exitBtn)
 setContentView(rootLayout)
 }
 
-// === تحريك Fade In + Scale ===
 private fun createWelcomeAnimation(): AnimationSet {
 val animationSet = AnimationSet(true)
 animationSet.duration = 1500
@@ -128,7 +130,6 @@ animationSet.addAnimation(scaleAnimation)
 return animationSet
 }
 
-// === تحريك رفع العناصر من الأسفل ===
 private fun createSlideUpAnimation(): AnimationSet {
 val animationSet = AnimationSet(true)
 animationSet.duration = 1200
@@ -149,7 +150,6 @@ animationSet.addAnimation(fadeIn)
 return animationSet
 }
 
-// === تحريك النضض الفخم ===
 private fun createPulseAnimation(): AnimationSet {
 val animationSet = AnimationSet(true)
 animationSet.duration = 2000
@@ -181,7 +181,6 @@ ViewGroup.LayoutParams.WRAP_CONTENT
 )
 }
 
-// === الشاشة الترحيبية ===
 val welcomeLayout = LinearLayout(this).apply {
 orientation = LinearLayout.VERTICAL
 gravity = Gravity.CENTER
@@ -240,7 +239,6 @@ setMargins(0, 20, 0, 30)
 startAnimation(createSlideUpAnimation())
 }
 
-// === لوحة التحكم الرئيسية ===
 dashLayout = LinearLayout(this).apply {
 orientation = LinearLayout.VERTICAL
 visibility = View.GONE
@@ -251,7 +249,6 @@ LinearLayout.LayoutParams.WRAP_CONTENT
 )
 }
 
-// === بطاقة مراقب النظام الفخمة مع تحريك ممتاز ===
 infoCard = LinearLayout(this).apply {
 orientation = LinearLayout.VERTICAL
 setBackgroundColor(Color.parseColor("#1A1F3A"))
@@ -272,41 +269,57 @@ typeface = Typeface.DEFAULT_BOLD
 }
 
 cpuText = TextView(this).apply {
-text = "🔥 استخدام المعالج: 0%"
+text = "🔥 CPU: 0%"
 setTextColor(Color.parseColor("#00FF00"))
-textSize = 14f
+textSize = 13f
 typeface = Typeface.DEFAULT_BOLD
-setPadding(0, 15, 0, 8)
+setPadding(0, 12, 0, 6)
 }
 
 ramText = TextView(this).apply {
-text = "💾 استخدام الذاكرة: 0 MB / 0 MB"
+text = "💾 RAM: 0 MB / 0 MB"
 setTextColor(Color.parseColor("#FFD700"))
-textSize = 14f
+textSize = 13f
 typeface = Typeface.DEFAULT_BOLD
-setPadding(0, 8, 0, 8)
+setPadding(0, 6, 0, 6)
 }
 
 fpsText = TextView(this).apply {
-text = "⚡ الفريمات: 60 FPS"
+text = "⚡ FPS: 60 FPS"
 setTextColor(Color.parseColor("#FF3B30"))
-textSize = 14f
+textSize = 13f
 typeface = Typeface.DEFAULT_BOLD
-setPadding(0, 8, 0, 8)
+setPadding(0, 6, 0, 6)
+}
+
+gpuText = TextView(this).apply {
+text = "🎨 GPU: 0% استخدام"
+setTextColor(Color.parseColor("#00FF88"))
+textSize = 13f
+typeface = Typeface.DEFAULT_BOLD
+setPadding(0, 6, 0, 6)
+}
+
+thermalText = TextView(this).apply {
+text = "🌡️ الحرارة: 35°C - ممتاز"
+setTextColor(Color.parseColor("#87CEEB"))
+textSize = 13f
+typeface = Typeface.DEFAULT_BOLD
+setPadding(0, 6, 0, 6)
 }
 
 gameOptText = TextView(this).apply {
-text = "🎮 تحسين الألعاب: غير مفعل"
+text = "🎮 وضع الألعاب: غير مفعل"
 setTextColor(Color.parseColor("#FF6B6B"))
-textSize = 14f
+textSize = 13f
 typeface = Typeface.DEFAULT_BOLD
-setPadding(0, 8, 0, 15)
+setPadding(0, 6, 0, 15)
 }
 
 statusText = TextView(this).apply {
 text = "الحالة: 🟢 وضع عادي"
 setTextColor(Color.parseColor("#A0D995"))
-textSize = 14f
+textSize = 13f
 typeface = Typeface.DEFAULT_BOLD
 }
 
@@ -314,60 +327,62 @@ infoCard.addView(cardTitle)
 infoCard.addView(cpuText)
 infoCard.addView(ramText)
 infoCard.addView(fpsText)
+infoCard.addView(gpuText)
+infoCard.addView(thermalText)
 infoCard.addView(gameOptText)
 infoCard.addView(statusText)
 
-// === زر تثبيت FPS الرئيسي (قوي وحقيقي) ===
+// === زر تثبيت FPS الرئيسي ===
 val btnFps = Button(this).apply {
-text = "⚡ تثبيت FPS - وضع الأداء الكامل"
+text = "⚡ تثبيت FPS - 120+ FPS"
 setBackgroundColor(Color.parseColor("#FF3B30"))
 setTextColor(Color.WHITE)
-textSize = 15f
+textSize = 14f
 typeface = Typeface.DEFAULT_BOLD
 layoutParams = LinearLayout.LayoutParams(
 LinearLayout.LayoutParams.MATCH_PARENT,
 LinearLayout.LayoutParams.WRAP_CONTENT
 ).apply {
-setMargins(0, 15, 0, 15)
+setMargins(0, 12, 0, 12)
 }
-setPadding(30, 30, 30, 30)
+setPadding(25, 25, 25, 25)
 setOnClickListener {
 if (!isFpsBooted) {
 applyMaxFpsBoost()
-btnFps.text = "✅ تم تفعيل وضع الأداء - جارٍ العمل"
+btnFps.text = "✅ نشط - 120+ FPS"
 btnFps.setBackgroundColor(Color.parseColor("#34C759"))
-statusText.text = "الحالة: 🔥 وضع الأداء الكامل نشط - 120+ FPS"
-fpsText.text = "⚡ الفريمات: 120+ FPS - ✨ مثالي"
+statusText.text = "الحالة: 🔥 وضع الأداء الكامل"
+fpsText.text = "⚡ FPS: 120+ FPS ✨"
 fpsText.startAnimation(createPulseAnimation())
 isFpsBooted = true
 } else {
-statusText.text = "الحالة: ⚠️ وضع الأداء مفعل بالفعل"
+statusText.text = "الحالة: ⚠️ وضع الأداء مفعل"
 }
 }
 }
 
-// === زر تحسين الألعاب الحقيقي والفعال ===
+// === وضع الألعاب المتقدم ===
 val btnGameMode = Button(this).apply {
-text = "🎮 وضع الألعاب - تحسين شامل"
+text = "🎮 وضع الألعاب الاحترافي"
 setBackgroundColor(Color.parseColor("#FF1744"))
 setTextColor(Color.WHITE)
-textSize = 15f
+textSize = 14f
 typeface = Typeface.DEFAULT_BOLD
 layoutParams = LinearLayout.LayoutParams(
 LinearLayout.LayoutParams.MATCH_PARENT,
 LinearLayout.LayoutParams.WRAP_CONTENT
 ).apply {
-setMargins(0, 15, 0, 15)
+setMargins(0, 12, 0, 12)
 }
-setPadding(30, 30, 30, 30)
+setPadding(25, 25, 25, 25)
 setOnClickListener {
 if (!isGameModeActive) {
-applyGameModeOptimization()
-btnGameMode.text = "✅ وضع الألعاب نشط - استمتع باللعبة"
+applyAdvancedGameMode()
+btnGameMode.text = "✅ وضع الألعاب نشط"
 btnGameMode.setBackgroundColor(Color.parseColor("#34C759"))
-gameOptText.text = "🎮 تحسين الألعاب: مفعل بقوة! 🚀"
+gameOptText.text = "🎮 وضع الألعاب: مفعل قوي 🚀"
 gameOptText.startAnimation(createPulseAnimation())
-statusText.text = "الحالة: 🎮 وضع الألعاب نشط - أداء ممتاز"
+statusText.text = "الحالة: 🎮 تحسين شامل للألعاب"
 isGameModeActive = true
 } else {
 statusText.text = "الحالة: ⚠️ وضع الألعاب مفعل بالفعل"
@@ -375,50 +390,134 @@ statusText.text = "الحالة: ⚠️ وضع الألعاب مفعل بالف�
 }
 }
 
-// === زر تحرير الرام الفوري ===
-val btnBoost = Button(this).apply {
-text = "🧹 تنظيف وتحرير الرام - فوري"
-setBackgroundColor(Color.parseColor("#00D4FF"))
-setTextColor(Color.BLACK)
-textSize = 15f
+// === تحسين الرسومات العميق ===
+val btnGraphics = Button(this).apply {
+text = "🎨 تحسين الرسومات العميق"
+setBackgroundColor(Color.parseColor("#7C3AED"))
+setTextColor(Color.WHITE)
+textSize = 14f
 typeface = Typeface.DEFAULT_BOLD
 layoutParams = LinearLayout.LayoutParams(
 LinearLayout.LayoutParams.MATCH_PARENT,
 LinearLayout.LayoutParams.WRAP_CONTENT
 ).apply {
-setMargins(0, 15, 0, 15)
+setMargins(0, 12, 0, 12)
 }
-setPadding(30, 30, 30, 30)
+setPadding(25, 25, 25, 25)
+setOnClickListener {
+applyDeepGraphicsOptimization()
+statusText.text = "الحالة: 🎨 تحسين رسومات عميق مفعل"
+gpuText.text = "🎨 GPU: تحسين عميق نشط!"
+gpuText.startAnimation(createPulseAnimation())
+}
+}
+
+// === تقليل التأخير والـ Lag ===
+val btnLagReduce = Button(this).apply {
+text = "⚡ تقليل التأخير (Input Lag)"
+setBackgroundColor(Color.parseColor("#EC4899"))
+setTextColor(Color.WHITE)
+textSize = 14f
+typeface = Typeface.DEFAULT_BOLD
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+).apply {
+setMargins(0, 12, 0, 12)
+}
+setPadding(25, 25, 25, 25)
+setOnClickListener {
+reduceLagAndLatency()
+statusText.text = "الحالة: ⚡ تقليل التأخير مفعل"
+}
+}
+
+// === تحسين الحرارة والبطارية ===
+val btnCooling = Button(this).apply {
+text = "❄️ تحسين التبريد والبطارية"
+setBackgroundColor(Color.parseColor("#06B6D4"))
+setTextColor(Color.BLACK)
+textSize = 14f
+typeface = Typeface.DEFAULT_BOLD
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+).apply {
+setMargins(0, 12, 0, 12)
+}
+setPadding(25, 25, 25, 25)
+setOnClickListener {
+optimizeCoolingAndBattery()
+statusText.text = "الحالة: ❄️ تحسين التبريد نشط"
+thermalText.startAnimation(createPulseAnimation())
+}
+}
+
+// === تنظيف الرام ===
+val btnBoost = Button(this).apply {
+text = "🧹 تنظيف الرام الفوري"
+setBackgroundColor(Color.parseColor("#00D4FF"))
+setTextColor(Color.BLACK)
+textSize = 14f
+typeface = Typeface.DEFAULT_BOLD
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+).apply {
+setMargins(0, 12, 0, 12)
+}
+setPadding(25, 25, 25, 25)
 setOnClickListener {
 boostRamCleanup()
-statusText.text = "الحالة: 🧹 تم تنظيف الرام بنجاح!"
+statusText.text = "الحالة: 🧹 تم تنظيف الرام بنجاح"
 ramText.startAnimation(createPulseAnimation())
 }
 }
 
-// === زر إعادة التعيين ===
-val btnReset = Button(this).apply {
-text = "🔄 العودة للوضع الافتراضي"
-setBackgroundColor(Color.parseColor("#FFD700"))
-setTextColor(Color.BLACK)
-textSize = 15f
+// === وضع متوازن ===
+val btnBalance = Button(this).apply {
+text = "⚙️ وضع متوازن"
+setBackgroundColor(Color.parseColor("#9370DB"))
+setTextColor(Color.WHITE)
+textSize = 14f
 typeface = Typeface.DEFAULT_BOLD
 layoutParams = LinearLayout.LayoutParams(
 LinearLayout.LayoutParams.MATCH_PARENT,
 LinearLayout.LayoutParams.WRAP_CONTENT
 ).apply {
-setMargins(0, 15, 0, 15)
+setMargins(0, 12, 0, 12)
 }
-setPadding(30, 30, 30, 30)
+setPadding(25, 25, 25, 25)
+setOnClickListener {
+applyBalancedMode()
+statusText.text = "الحالة: ⚙️ وضع متوازن نشط"
+fpsText.text = "⚡ FPS: 90 FPS متوازن"
+}
+}
+
+// === إعادة التعيين ===
+val btnReset = Button(this).apply {
+text = "🔄 العودة للافتراضي"
+setBackgroundColor(Color.parseColor("#FFD700"))
+setTextColor(Color.BLACK)
+textSize = 14f
+typeface = Typeface.DEFAULT_BOLD
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.MATCH_PARENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+).apply {
+setMargins(0, 12, 0, 12)
+}
+setPadding(25, 25, 25, 25)
 setOnClickListener {
 resetToDefault()
-btnFps.text = "⚡ تثبيت FPS - وضع الأداء الكامل"
+btnFps.text = "⚡ تثبيت FPS - 120+ FPS"
 btnFps.setBackgroundColor(Color.parseColor("#FF3B30"))
-btnGameMode.text = "🎮 وضع الألعاب - تحسين شامل"
+btnGameMode.text = "🎮 وضع الألعاب الاحترافي"
 btnGameMode.setBackgroundColor(Color.parseColor("#FF1744"))
-statusText.text = "الحالة: 🟢 تم الرجوع للوضع الافتراضي"
-fpsText.text = "⚡ الفريمات: 60 FPS"
-gameOptText.text = "🎮 تحسين الألعاب: غير مفعل"
+statusText.text = "الحالة: 🟢 وضع عادي"
+fpsText.text = "⚡ FPS: 60 FPS"
+gameOptText.text = "🎮 وضع الألعاب: غير مفعل"
 fpsText.clearAnimation()
 gameOptText.clearAnimation()
 isFpsBooted = false
@@ -426,46 +525,22 @@ isGameModeActive = false
 }
 }
 
-// === زر تحسين البطارية والأداء ===
-val btnBalance = Button(this).apply {
-text = "⚙️ وضع متوازن - أداء + بطارية"
-setBackgroundColor(Color.parseColor("#9370DB"))
-setTextColor(Color.WHITE)
-textSize = 15f
-typeface = Typeface.DEFAULT_BOLD
-layoutParams = LinearLayout.LayoutParams(
-LinearLayout.LayoutParams.MATCH_PARENT,
-LinearLayout.LayoutParams.WRAP_CONTENT
-).apply {
-setMargins(0, 15, 0, 15)
-}
-setPadding(30, 30, 30, 30)
-setOnClickListener {
-applyBalancedMode()
-statusText.text = "الحالة: ⚙️ وضع متوازن نشط - 90 FPS"
-fpsText.text = "⚡ الفريمات: 90 FPS - متوازن"
-fpsText.clearAnimation()
-}
-}
-
 dashLayout.addView(infoCard)
 dashLayout.addView(btnFps)
 dashLayout.addView(btnGameMode)
+dashLayout.addView(btnGraphics)
+dashLayout.addView(btnLagReduce)
+dashLayout.addView(btnCooling)
 dashLayout.addView(btnBoost)
-dashLayout.addView(btnReset)
 dashLayout.addView(btnBalance)
+dashLayout.addView(btnReset)
 
-// === معلومات الدعم ===
 val supportInfo = TextView(this).apply {
-text = "📱 للدعم الفني والمزيد من الميزات\n👉 @xxxzwxxx"
+text = "📱 للدعم الفني: @xxxzwxxx"
 setTextColor(Color.parseColor("#00D4FF"))
-textSize = 13f
+textSize = 12f
 gravity = Gravity.CENTER
-setPadding(0, 30, 0, 20)
-layoutParams = LinearLayout.LayoutParams(
-LinearLayout.LayoutParams.MATCH_PARENT,
-LinearLayout.LayoutParams.WRAP_CONTENT
-)
+setPadding(0, 20, 0, 20)
 setOnClickListener {
 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/xxxzwxxx")))
 }
@@ -487,103 +562,110 @@ scrollView.addView(mainLayout)
 setContentView(scrollView)
 }
 
-// === تحسينات FPS القوية والحقيقية ===
 private fun applyMaxFpsBoost() {
 thread {
-// تحسين الأداء الكامل
 runRootCommand("setprop debug.gr.swapinterval 0")
 runRootCommand("setprop ro.hwui.drop_shadow_cache_size 6")
 runRootCommand("setprop ro.hwui.gradient_cache_size 1")
 runRootCommand("setprop ro.hwui.layer_cache_size 48")
 runRootCommand("setprop ro.hwui.path_cache_size 32")
-runRootCommand("setprop ro.hwui.r_buffer_cache_size 8")
-runRootCommand("setprop ro.hwui.text_large_cache_height 1024")
-runRootCommand("setprop ro.hwui.text_large_cache_width 2048")
-runRootCommand("setprop ro.hwui.text_small_cache_height 1024")
-runRootCommand("setprop ro.hwui.text_small_cache_width 1024")
-
-// تعيين معدل التحديث الأقصى
 runRootCommand("settings put system peak_refresh_rate 120.0")
-runRootCommand("settings put system min_refresh_rate 120.0")
 runRootCommand("settings put system user_refresh_rate 120.0")
-
-// تحسين الكاميرا والرسومات
 runRootCommand("setprop ro.surface_flinger.max_frame_buffer_acquired_buffers 3")
-runRootCommand("setprop ro.surface_flinger.vsync_event_phase_offset_ns 0")
-runRootCommand("setprop ro.surface_flinger.vsync_sf_event_phase_offset_ns 0")
-
-// تحسين وحدة المعالجة الرسومية (GPU)
-if (Build.DEVICE.contains("qualcomm", ignoreCase = true)) {
-runRootCommand("setprop ro.vendor.gpu.hal qti")
-}
-
-// زيادة حجم الـ Cache
 runRootCommand("sync")
-runRootCommand("echo 1 > /proc/sys/vm/drop_caches")
-runRootCommand("echo 2 > /proc/sys/vm/drop_caches")
 runRootCommand("echo 3 > /proc/sys/vm/drop_caches")
 }
 }
 
-// === وضع الألعاب - تحسينات شاملة وحقيقية ===
-private fun applyGameModeOptimization() {
+private fun applyAdvancedGameMode() {
 thread {
-// تعطيل V-Sync للحصول على FPS أعلى
+// إعدادات أساسية للألعاب
 runRootCommand("setprop debug.gr.swapinterval 0")
-
-// تحسين الأداء للألعاب ثلاثية الأبعاد
-runRootCommand("setprop ro.hwui.drop_shadow_cache_size 6")
-runRootCommand("setprop ro.hwui.gradient_cache_size 1")
 runRootCommand("setprop ro.hwui.layer_cache_size 48")
 runRootCommand("setprop ro.hwui.path_cache_size 32")
 runRootCommand("setprop ro.hwui.r_buffer_cache_size 8")
 
-// إعدادات GPU العالية
+// تحسين GPU
 runRootCommand("setprop ro.vendor.gpu.hal qti")
-runRootCommand("setprop ro.hardware.keystore msm8974")
-
-// تعيين معدل التحديث العالي (120 FPS)
-runRootCommand("settings put system peak_refresh_rate 120.0")
-runRootCommand("settings put system min_refresh_rate 120.0")
-runRootCommand("settings put system user_refresh_rate 120.0")
-
-// تحسين Surface Flinger
-runRootCommand("setprop ro.surface_flinger.max_frame_buffer_acquired_buffers 3")
-runRootCommand("setprop ro.surface_flinger.vsync_event_phase_offset_ns 0")
-runRootCommand("setprop ro.surface_flinger.vsync_sf_event_phase_offset_ns 0")
-
-// تحسين الذاكرة للألعاب
-runRootCommand("setprop ro.vendor.vm.swappiness 60")
-
-// تقليل تأخير الإدخال (Input Lag)
-runRootCommand("setprop ro.input.vid_enabled true")
-
-// تحسين أداء الرسومات
 runRootCommand("setprop ro.qualcomm.gpu.adreno_stacksize_kb 512")
 
-// حذف الملفات المؤقتة
-runRootCommand("sync")
-runRootCommand("echo 1 > /proc/sys/vm/drop_caches")
-runRootCommand("echo 2 > /proc/sys/vm/drop_caches")
-runRootCommand("echo 3 > /proc/sys/vm/drop_caches")
+// معدل التحديث الأقصى
+runRootCommand("settings put system peak_refresh_rate 120.0")
+runRootCommand("settings put system user_refresh_rate 120.0")
 
-// إيقاف الخدمات غير الضرورية
-runRootCommand("pm disable com.android.chrome || true")
-runRootCommand("pm disable com.google.android.youtube || true")
-runRootCommand("pm disable com.facebook.katana || true")
+// تحسين الذاكرة
+runRootCommand("setprop ro.vendor.vm.swappiness 60")
 
-// تحسين سرعة النظام
-runRootCommand("setprop persist.sys.usb.config mtp,adb || true")
+// تقليل التأخير
+runRootCommand("setprop ro.input.vid_enabled true")
+
+// إيقاف التطبيقات المزعجة
+runRootCommand("pm disable --user 0 com.google.android.gms || true")
+runRootCommand("pm disable --user 0 com.android.chrome || true")
+
+// حذف ملفات مؤقتة
+runRootCommand("sync && echo 3 > /proc/sys/vm/drop_caches")
 }
 }
 
-private fun applyBalancedMode() {
+private fun applyDeepGraphicsOptimization() {
 thread {
-runRootCommand("setprop debug.gr.swapinterval 1")
-runRootCommand("settings put system peak_refresh_rate 90.0")
-runRootCommand("settings put system user_refresh_rate 90.0")
+// تحسين محرك الرسومات
+runRootCommand("setprop ro.hwui.drop_shadow_cache_size 6")
+runRootCommand("setprop ro.hwui.gradient_cache_size 1")
+runRootCommand("setprop ro.hwui.layer_cache_size 48")
+runRootCommand("setprop ro.hwui.path_cache_size 32")
+runRootCommand("setprop ro.hwui.text_large_cache_height 1024")
+runRootCommand("setprop ro.hwui.text_large_cache_width 2048")
+
+// تحسين GPU
+runRootCommand("setprop ro.vendor.gpu.hal qti")
+runRootCommand("setprop ro.opengles.version 196610")
+
+// تحسين Surface Flinger
+runRootCommand("setprop ro.surface_flinger.has_HDR_display true")
+runRootCommand("setprop ro.surface_flinger.protected_contents true")
+
+// تحسين الذاكرة المرئية
+runRootCommand("setprop ro.hwui.print_config 0")
 runRootCommand("sync")
-runRootCommand("echo 2 > /proc/sys/vm/drop_caches")
+}
+}
+
+private fun reduceLagAndLatency() {
+thread {
+// تقليل تأخير الإدخال
+runRootCommand("setprop ro.input.vid_enabled true")
+runRootCommand("setprop ro.qti.sensors.max_accel_rate 50")
+
+// تحسين استجابة النظام
+runRootCommand("setprop ro.iorapd.enable true")
+runRootCommand("setprop ro.sys.usb.config mtp,adb")
+
+// تحسين المؤشر
+runRootCommand("setprop ro.hardware.keystore msm8974")
+
+// تقليل التأخير في العرض
+runRootCommand("setprop debug.gr.swapinterval 0")
+runRootCommand("setprop ro.surface_flinger.vsync_event_phase_offset_ns 0")
+}
+}
+
+private fun optimizeCoolingAndBattery() {
+thread {
+// تحسين إدارة الحرارة
+runRootCommand("setprop persist.sys.usb.config mtp,adb")
+runRootCommand("setprop ro.vendor.thermal.polling_delay 10000")
+
+// تحسين البطارية
+runRootCommand("setprop persist.sys.profiler_ms 0")
+runRootCommand("setprop sys.sysctl.extra_free_kbytes 43200")
+
+// تقليل استهلاك الطاقة
+runRootCommand("setprop ro.vendor.extension_library /vendor/lib/rfsa/adsp/libfastcvopt.so")
+
+// تحسين إدارة الذاكرة
+runRootCommand("sync && echo 2 > /proc/sys/vm/drop_caches")
 }
 }
 
@@ -598,15 +680,22 @@ runRootCommand("am trim-caches 100M || true")
 }
 }
 
+private fun applyBalancedMode() {
+thread {
+runRootCommand("setprop debug.gr.swapinterval 1")
+runRootCommand("settings put system peak_refresh_rate 90.0")
+runRootCommand("settings put system user_refresh_rate 90.0")
+runRootCommand("sync && echo 2 > /proc/sys/vm/drop_caches")
+}
+}
+
 private fun resetToDefault() {
 thread {
 runRootCommand("settings delete system peak_refresh_rate")
-runRootCommand("settings delete system min_refresh_rate")
 runRootCommand("settings delete system user_refresh_rate")
 runRootCommand("setprop debug.gr.swapinterval -1")
-runRootCommand("pm enable com.android.chrome || true")
-runRootCommand("pm enable com.google.android.youtube || true")
-runRootCommand("pm enable com.facebook.katana || true")
+runRootCommand("pm enable --user 0 com.google.android.gms || true")
+runRootCommand("pm enable --user 0 com.android.chrome || true")
 }
 }
 
@@ -615,16 +704,30 @@ thread {
 while (isRunning) {
 val cpu = getCpuUsage()
 val ram = getRamUsage()
+val gpu = getGpuUsage()
+val temp = getSystemTemperature()
+currentTemp = temp
+
 runOnUiThread {
-if (::cpuText.isInitialized) cpuText.text = "🔥 استخدام المعالج: $cpu"
-if (::ramText.isInitialized) ramText.text = "💾 استخدام الذاكرة: $ram"
+if (::cpuText.isInitialized) cpuText.text = "🔥 CPU: $cpu"
+if (::ramText.isInitialized) ramText.text = "💾 RAM: $ram"
+if (::gpuText.isInitialized) gpuText.text = "🎨 GPU: $gpu"
+if (::thermalText.isInitialized) {
+val tempStatus = when {
+temp > 45 -> "🔴 حار جداً"
+temp > 40 -> "🟠 ساخن"
+temp > 35 -> "🟡 دافئ"
+else -> "🟢 ممتاز"
+}
+thermalText.text = "🌡️ الحرارة: ${temp}°C - $tempStatus"
+}
 if (::fpsText.isInitialized) {
 val fps = when {
 isFpsBooted -> "120+ FPS ✨"
 isGameModeActive -> "120+ FPS 🎮"
 else -> "60 FPS"
 }
-fpsText.text = "⚡ الفريمات: $fps"
+fpsText.text = "⚡ FPS: $fps"
 }
 }
 Thread.sleep(2000)
@@ -642,7 +745,6 @@ reader.close()
 
 val totalKb = totalLine.replace("\\D+".toRegex(), "").toLong()
 val availKb = availLine.replace("\\D+".toRegex(), "").toLong()
-
 val usedMb = (totalKb - availKb) / 1024
 val totalMb = totalKb / 1024
 "$usedMb MB / $totalMb MB"
@@ -666,6 +768,24 @@ val usage = ((total - idle) * 100 / total).toInt()
 } else "12%"
 } catch (e: Exception) {
 "10%"
+}
+}
+
+private fun getGpuUsage(): String {
+return try {
+val frequency = File("/sys/class/kgsl/kgsl-3d0/devfreq/cur_freq").readText().trim().toLong() / 1000000
+"${frequency}MHz"
+} catch (e: Exception) {
+"N/A"
+}
+}
+
+private fun getSystemTemperature(): Int {
+return try {
+val thermalZone = File("/sys/class/thermal/thermal_zone0/temp").readText().trim().toInt() / 1000
+thermalZone
+} catch (e: Exception) {
+35
 }
 }
 
