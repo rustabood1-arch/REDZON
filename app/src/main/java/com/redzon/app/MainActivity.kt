@@ -34,6 +34,8 @@ private lateinit var thermalText: TextView
 private lateinit var startBtn: Button
 private lateinit var dashLayout: LinearLayout
 private lateinit var infoCard: LinearLayout
+private lateinit var btnFps: Button
+private lateinit var btnGameMode: Button
 @Volatile private var isRunning = true
 @Volatile private var isFpsBooted = false
 @Volatile private var isGameModeActive = false
@@ -75,7 +77,7 @@ private fun showRootDeniedUI() {
 val rootLayout = LinearLayout(this).apply {
 orientation = LinearLayout.VERTICAL
 setBackgroundColor(Color.parseColor("#0A0E27"))
-gravity = Gravity.CENTER
+gravit y = Gravity.CENTER
 setPadding(50, 50, 50, 50)
 }
 
@@ -120,7 +122,7 @@ animationSet.duration = 1500
 val fadeIn = AlphaAnimation(0f, 1f)
 fadeIn.duration = 1500
 
-val scaleAnimation = ScaleAnimation(0.8f, 1f, 0.8f, 1f, 
+val scaleAnimation = ScaleAnimation(0.8f, 1f, 0.8f, 1f,
 ScaleAnimation.RELATIVE_TO_SELF, 0.5f,
 ScaleAnimation.RELATIVE_TO_SELF, 0.5f)
 scaleAnimation.duration = 1500
@@ -333,7 +335,7 @@ infoCard.addView(gameOptText)
 infoCard.addView(statusText)
 
 // === زر تثبيت FPS الرئيسي ===
-val btnFps = Button(this).apply {
+btnFps = Button(this).apply {
 text = "⚡ تثبيت FPS - 120+ FPS"
 setBackgroundColor(Color.parseColor("#FF3B30"))
 setTextColor(Color.WHITE)
@@ -362,7 +364,7 @@ statusText.text = "الحالة: ⚠️ وضع الأداء مفعل"
 }
 
 // === وضع الألعاب المتقدم ===
-val btnGameMode = Button(this).apply {
+btnGameMode = Button(this).apply {
 text = "🎮 وضع الألعاب الاحترافي"
 setBackgroundColor(Color.parseColor("#FF1744"))
 setTextColor(Color.WHITE)
