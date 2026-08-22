@@ -346,11 +346,12 @@ LinearLayout.LayoutParams.WRAP_CONTENT
 setMargins(0, 12, 0, 12)
 }
 setPadding(25, 25, 25, 25)
-setOnClickListener {
+setOnClickListener { v ->
+val btn = v as Button
 if (!isFpsBooted) {
 applyMaxFpsBoost()
-btnFps.text = "✅ نشط - 120+ FPS"
-btnFps.setBackgroundColor(Color.parseColor("#34C759"))
+btn.text = "✅ نشط - 120+ FPS"
+btn.setBackgroundColor(Color.parseColor("#34C759"))
 statusText.text = "الحالة: 🔥 وضع الأداء الكامل"
 fpsText.text = "⚡ FPS: 120+ FPS ✨"
 fpsText.startAnimation(createPulseAnimation())
@@ -375,11 +376,12 @@ LinearLayout.LayoutParams.WRAP_CONTENT
 setMargins(0, 12, 0, 12)
 }
 setPadding(25, 25, 25, 25)
-setOnClickListener {
+setOnClickListener { v ->
+val btn = v as Button
 if (!isGameModeActive) {
 applyAdvancedGameMode()
-btnGameMode.text = "✅ وضع الألعاب نشط"
-btnGameMode.setBackgroundColor(Color.parseColor("#34C759"))
+btn.text = "✅ وضع الألعاب نشط"
+btn.setBackgroundColor(Color.parseColor("#34C759"))
 gameOptText.text = "🎮 وضع الألعاب: مفعل قوي 🚀"
 gameOptText.startAnimation(createPulseAnimation())
 statusText.text = "الحالة: 🎮 تحسين شامل للألعاب"
