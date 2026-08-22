@@ -21,7 +21,7 @@ class MainActivity : Activity() {
 private lateinit var statusText: TextView
 private lateinit var cpuText: TextView
 private lateinit var ramText: TextView
-@Volatile private var isRunning = true
+@Volatile private var isRunning = true
 
 override fun onCreate(savedInstanceState: Bundle?) {
 super.onCreate(savedInstanceState)
@@ -64,7 +64,7 @@ setPadding(50, 50, 50, 50)
 }
 
 val title = TextView(this).apply {
-text = "⚠️ خطأ بالصلاحيات"
+text = "⚠️ خطأ بالصلاحيات"
 setTextColor(Color.RED)
 textSize = 22f
 typeface = Typeface.DEFAULT_BOLD
@@ -129,7 +129,6 @@ visibility = View.GONE
 setPadding(0, 40, 0, 0)
 }
 
-Shartar ":
 val infoCard = LinearLayout(this).apply {
 orientation = LinearLayout.VERTICAL
 setBackgroundColor(Color.parseColor("#1A1A1A"))
@@ -137,7 +136,7 @@ setPadding(30, 30, 30, 30)
 }
 
 val infoTitle = TextView(this).apply {
-text = "📊 مراقب النظام"
+text = "📊 مراقب النظام"
 setTextColor(Color.parseColor("#D4AF37"))
 textSize = 18f
 typeface = Typeface.DEFAULT_BOLD
@@ -170,18 +169,18 @@ infoCard.addView(ramText)
 infoCard.addView(statusText)
 
 val btnFps = Button(this).apply {
-text = "⚡ زيادة وتثبيت الـ FPS"
+text = "⚡ زيادة وتثبيت الـ FPS"
 setBackgroundColor(Color.parseColor("#B8860B"))
 setTextColor(Color.BLACK)
 textSize = 16f
 setOnClickListener {
 runRootCommand("setprop debug.gr.swapinterval 0; settings put system peak_refresh_rate 120.0; settings put system user_refresh_rate 120.0")
-statusText.text = "الحالة الحالية: 🔥 تم تثبيت الـ FPS بأقصى أداء!"
+statusText.text = "الحالة الحالية: 🔥 تم تثبيت الـ FPS بأقصى أداء!"
 }
 }
 
 val btnReset = Button(this).apply {
-text = "🛑 إيقاف المميزات والعودة للافتراضي"
+text = "🛑 إيقاف المميزات والعودة للافتراضي"
 setBackgroundColor(Color.parseColor("#333333"))
 setTextColor(Color.WHITE)
 textSize = 15f
@@ -192,13 +191,13 @@ statusText.text = "الحالة الحالية: الوضع الافتراضي"
 }
 
 val btnBoost = Button(this).apply {
-text = "🚀 تنظيف الرام (Boost RAM)"
+text = "🚀 تنظيف الرام (Boost RAM)"
 setBackgroundColor(Color.parseColor("#1A1A1A"))
 setTextColor(Color.parseColor("#D4AF37"))
 textSize = 15f
 setOnClickListener {
 runRootCommand("sync; echo 3 > /proc/sys/vm/drop_caches")
-statusText.text = "الحالة الحالية: 🧹 تم تنظيف الرام!"
+statusText.text = "الحالة الحالية: 🧹 تم تنظيف الرام!"
 }
 }
 
@@ -236,7 +235,6 @@ scrollView.addView(mainLayout)
 setContentView(scrollView)
 }
 
-Shartar ":
 private fun startSystemMonitoring() {
 thread {
 while (isRunning) {
