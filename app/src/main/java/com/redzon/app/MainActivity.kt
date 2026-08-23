@@ -285,7 +285,7 @@ setPadding(0, 6, 0, 6)
 }
 
 fpsText = TextView(this).apply {
-text = "⚡ FPS: 60 FPS"
+text = "⚡ FPS: هدف ثبات 60 FPS"
 setTextColor(Color.parseColor("#FF3B30"))
 textSize = 13f
 typeface = Typeface.DEFAULT_BOLD
@@ -334,7 +334,7 @@ infoCard.addView(statusText)
 
 // === زر تثبيت FPS الرئيسي ===
 val btnFps = Button(this).apply {
-text = "⚡ تثبيت FPS - 120+ FPS"
+text = "⚡ وضع ثبات قوي 60 FPS"
 setBackgroundColor(Color.parseColor("#FF3B30"))
 setTextColor(Color.WHITE)
 textSize = 14f
@@ -349,14 +349,14 @@ setPadding(25, 25, 25, 25)
 setOnClickListener {
 if (!isFpsBooted) {
 applyMaxFpsBoost()
-btnFps.text = "✅ نشط - 120+ FPS"
+btnFps.text = "✅ نشط - ثبات قوي 60 FPS"
 btnFps.setBackgroundColor(Color.parseColor("#34C759"))
-statusText.text = "الحالة: 🔥 وضع الأداء الكامل"
-fpsText.text = "⚡ FPS: 120+ FPS ✨"
+statusText.text = "الحالة: 🔥 تعزيز ثبات قريب من 60 FPS"
+fpsText.text = "⚡ FPS: ثبات قوي قريب من 60 ✨"
 fpsText.startAnimation(createPulseAnimation())
 isFpsBooted = true
 } else {
-statusText.text = "الحالة: ⚠️ وضع الأداء مفعل"
+statusText.text = "الحالة: ⚠️ وضع ثبات 60 مفعل"
 }
 }
 }
@@ -511,12 +511,12 @@ setMargins(0, 12, 0, 12)
 setPadding(25, 25, 25, 25)
 setOnClickListener {
 resetToDefault()
-btnFps.text = "⚡ تثبيت FPS - 120+ FPS"
+btnFps.text = "⚡ وضع ثبات قوي 60 FPS"
 btnFps.setBackgroundColor(Color.parseColor("#FF3B30"))
 btnGameMode.text = "🎮 وضع الألعاب الاحترافي"
 btnGameMode.setBackgroundColor(Color.parseColor("#FF1744"))
 statusText.text = "الحالة: 🟢 وضع عادي"
-fpsText.text = "⚡ FPS: 60 FPS"
+fpsText.text = "⚡ FPS: هدف ثبات 60 FPS"
 gameOptText.text = "🎮 وضع الألعاب: غير مفعل"
 fpsText.clearAnimation()
 gameOptText.clearAnimation()
@@ -569,8 +569,8 @@ runRootCommand("setprop ro.hwui.drop_shadow_cache_size 6")
 runRootCommand("setprop ro.hwui.gradient_cache_size 1")
 runRootCommand("setprop ro.hwui.layer_cache_size 48")
 runRootCommand("setprop ro.hwui.path_cache_size 32")
-runRootCommand("settings put system peak_refresh_rate 120.0")
-runRootCommand("settings put system user_refresh_rate 120.0")
+runRootCommand("settings put system peak_refresh_rate 60.0")
+runRootCommand("settings put system user_refresh_rate 60.0")
 runRootCommand("setprop ro.surface_flinger.max_frame_buffer_acquired_buffers 3")
 runRootCommand("sync")
 runRootCommand("echo 3 > /proc/sys/vm/drop_caches")
@@ -723,9 +723,9 @@ thermalText.text = "🌡️ الحرارة: ${temp}°C - $tempStatus"
 }
 if (::fpsText.isInitialized) {
 val fps = when {
-isFpsBooted -> "120+ FPS ✨"
+isFpsBooted -> "ثبات قريب من 60 FPS ✨"
 isGameModeActive -> "120+ FPS 🎮"
-else -> "60 FPS"
+else -> "هدف ثبات 60 FPS"
 }
 fpsText.text = "⚡ FPS: $fps"
 }
