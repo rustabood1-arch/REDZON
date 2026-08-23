@@ -37,6 +37,7 @@ class MainActivity : Activity() {
     @Volatile private var isRunning = true
     @Volatile private var isFpsBooted = false
     @Volatile private var isGameModeActive = false
+    @Volatile private var isOxideModeActive = false
 
     // ─────────────────────────────────────────────────────────────
     //  Lifecycle
@@ -324,7 +325,7 @@ class MainActivity : Activity() {
             gameOptText.text = "🎮  وضع الألعاب: غير مفعل"
             statusText.text = "●  الحالة: وضع عادي 🟢"
             fpsText.clearAnimation(); gameOptText.clearAnimation()
-            isFpsBooted = false; isGameModeActive = false
+            isFpsBooted = false; isGameModeActive = false; isOxideModeActive = false
         }
         btnReset.layoutParams = marginParams(fill = true)
 
@@ -384,6 +385,7 @@ class MainActivity : Activity() {
 
         val btn60fps = actionButton("🎯  تحسين ثبات 60 FPS (Oxide)", Color.parseColor("#E65100"), Color.WHITE) {
             applyOxide60FpsStability()
+            isOxideModeActive = true
             statusText.text = "●  الحالة: تحسين ثبات Oxide مفعل 🟠"
             fpsText.text = "⚡  وضع FPS: ثبات 60 (Oxide)"
         }
@@ -475,7 +477,6 @@ class MainActivity : Activity() {
         runRootCommand("echo 1 > /proc/sys/vm/drop_caches")
         runRootCommand("echo 2 > /proc/sys/vm/drop_caches")
         runRootCommand("echo 3 > /proc/sys/vm/drop_caches")
-        runRootCommand("killall com.android.systemui || true")
         runRootCommand("am trim-caches 100M || true")
     }
 
@@ -530,8 +531,10 @@ class MainActivity : Activity() {
                     }
                     thermalText.text = "🌡️  الحرارة: ${temp}°C — $lbl"
                 }
-                if (::fpsText.isInitialized && !isFpsBooted && !isGameModeActive) {
-                    fpsText.text = "⚡  وضع FPS: عادي"
+                if (::fpsText.isInitialized) {
+                    if (!isFpsBooted && !isGameModeActive && !isOxideModeActive) {
+                        fpsText.text = "⚡  وضع FPS: عادي"
+                    }
                 }
             }
             Thread.sleep(2500)
@@ -592,7 +595,8 @@ class MainActivity : Activity() {
             ?.take(5)
             ?.mapIndexed { i, (name, ticks) ->
                 val shortName = name.substringAfterLast("/").take(30)
-                "${i + 1}. $shortName  (${ticks} ticks)"
+                val cpuTimeSec = ticks / 100
+                "${i + 1}. $shortName  (وقت CPU: ${cpuTimeSec}ث)"
             }
             ?.joinToString("\n") ?: "غير متاح"
         lines
