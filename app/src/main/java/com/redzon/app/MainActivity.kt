@@ -16,10 +16,14 @@ import android.view.animation.ScaleAnimation
 import android.view.animation.TranslateAnimation
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import java.io.File
 import java.io.RandomAccessFile
+import java.util.Collections
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.Executors
 import kotlin.concurrent.thread
 
 class MainActivity : Activity() {
@@ -34,10 +38,18 @@ private lateinit var thermalText: TextView
 private lateinit var startBtn: Button
 private lateinit var dashLayout: LinearLayout
 private lateinit var infoCard: LinearLayout
+private lateinit var loadingSpinner: ProgressBar
+private lateinit var optimizationStateText: TextView
+private lateinit var weakNetworkInfoText: TextView
+private lateinit var gameGuidanceText: TextView
 @Volatile private var isRunning = true
 @Volatile private var isFpsBooted = false
 @Volatile private var isGameModeActive = false
 @Volatile private var currentTemp = 0
+private val runningActions = AtomicInteger(0)
+private val runningActionKeys = Collections.synchronizedSet(mutableSetOf<String>())
+private val actionApplied = mutableMapOf<String, Boolean>()
+private val actionExecutor = Executors.newSingleThreadExecutor()
 
 override fun onCreate(savedInstanceState: Bundle?) {
 super.onCreate(savedInstanceState)
@@ -323,6 +335,39 @@ textSize = 13f
 typeface = Typeface.DEFAULT_BOLD
 }
 
+loadingSpinner = ProgressBar(this).apply {
+isIndeterminate = true
+visibility = View.GONE
+layoutParams = LinearLayout.LayoutParams(
+LinearLayout.LayoutParams.WRAP_CONTENT,
+LinearLayout.LayoutParams.WRAP_CONTENT
+).apply {
+setMargins(0, 12, 0, 8)
+gravity = Gravity.CENTER_HORIZONTAL
+}
+}
+
+optimizationStateText = TextView(this).apply {
+text = "🎯 التحكم بالثبات: لم يتم تفعيل أي تحسين بعد."
+setTextColor(Color.parseColor("#8FD3FF"))
+textSize = 12.5f
+setPadding(0, 10, 0, 8)
+}
+
+weakNetworkInfoText = TextView(this).apply {
+text = "🌐 عند ضعف الشبكة: يعمل التطبيق على تقليل التقطيع محلياً والحفاظ على سلاسة اللعب قدر الإمكان، بدون ضمان ثابت للإنترنت أو عتاد الجهاز."
+setTextColor(Color.parseColor("#C7D2FE"))
+textSize = 12f
+setPadding(0, 6, 0, 8)
+}
+
+gameGuidanceText = TextView(this).apply {
+text = "🎮 توصية للألعاب (Oxide Survival وما يشابهها): فعّل تثبيت FPS أولاً، ثم وضع الألعاب، وبعدها تقليل التأخير للحصول على تجربة أكثر ثباتاً."
+setTextColor(Color.parseColor("#B6F3C1"))
+textSize = 12f
+setPadding(0, 4, 0, 0)
+}
+
 infoCard.addView(cardTitle)
 infoCard.addView(cpuText)
 infoCard.addView(ramText)
@@ -331,10 +376,22 @@ infoCard.addView(gpuText)
 infoCard.addView(thermalText)
 infoCard.addView(gameOptText)
 infoCard.addView(statusText)
+infoCard.addView(loadingSpinner)
+infoCard.addView(optimizationStateText)
+infoCard.addView(weakNetworkInfoText)
+infoCard.addView(gameGuidanceText)
 
 // === زر تثبيت FPS الرئيسي ===
+val fpsLabel = "⚡ تثبيت FPS - 120+ FPS"
+val gameLabel = "🎮 وضع الألعاب الاحترافي"
+val graphicsLabel = "🎨 تحسين الرسومات العميق"
+val lagLabel = "⚡ تقليل التأخير (Input Lag)"
+val coolingLabel = "❄️ تحسين التبريد والبطارية"
+val ramLabel = "🧹 تنظيف الرام الفوري"
+val balancedLabel = "⚙️ وضع متوازن"
+
 val btnFps = Button(this).apply {
-text = "⚡ تثبيت FPS - 120+ FPS"
+text = fpsLabel
 setBackgroundColor(Color.parseColor("#FF3B30"))
 setTextColor(Color.WHITE)
 textSize = 14f
@@ -347,23 +404,30 @@ setMargins(0, 12, 0, 12)
 }
 setPadding(25, 25, 25, 25)
 setOnClickListener {
-if (!isFpsBooted) {
-applyMaxFpsBoost()
-btnFps.text = "✅ نشط - 120+ FPS"
-btnFps.setBackgroundColor(Color.parseColor("#34C759"))
-statusText.text = "الحالة: 🔥 وضع الأداء الكامل"
-fpsText.text = "⚡ FPS: 120+ FPS ✨"
-fpsText.startAnimation(createPulseAnimation())
-isFpsBooted = true
-} else {
+if (isFpsBooted) {
 statusText.text = "الحالة: ⚠️ وضع الأداء مفعل"
+return@setOnClickListener
+}
+runActionWithFeedback(
+actionKey = "fps",
+button = btnFps,
+baseLabel = fpsLabel,
+baseColor = Color.parseColor("#FF3B30"),
+loadingMessage = "جارٍ تفعيل تثبيت الفريمات..."
+) {
+applyMaxFpsBoost()
+} {
+isFpsBooted = true
+statusText.text = "الحالة: 🔥 تم تفعيل تثبيت الأداء"
+fpsText.text = "⚡ FPS: نمط الثبات العالي مفعل"
+fpsText.startAnimation(createPulseAnimation())
 }
 }
 }
 
 // === وضع الألعاب المتقدم ===
 val btnGameMode = Button(this).apply {
-text = "🎮 وضع الألعاب الاحترافي"
+text = gameLabel
 setBackgroundColor(Color.parseColor("#FF1744"))
 setTextColor(Color.WHITE)
 textSize = 14f
@@ -376,23 +440,30 @@ setMargins(0, 12, 0, 12)
 }
 setPadding(25, 25, 25, 25)
 setOnClickListener {
-if (!isGameModeActive) {
-applyAdvancedGameMode()
-btnGameMode.text = "✅ وضع الألعاب نشط"
-btnGameMode.setBackgroundColor(Color.parseColor("#34C759"))
-gameOptText.text = "🎮 وضع الألعاب: مفعل قوي 🚀"
-gameOptText.startAnimation(createPulseAnimation())
-statusText.text = "الحالة: 🎮 تحسين شامل للألعاب"
-isGameModeActive = true
-} else {
+if (isGameModeActive) {
 statusText.text = "الحالة: ⚠️ وضع الألعاب مفعل بالفعل"
+return@setOnClickListener
+}
+runActionWithFeedback(
+actionKey = "game",
+button = btnGameMode,
+baseLabel = gameLabel,
+baseColor = Color.parseColor("#FF1744"),
+loadingMessage = "جارٍ تطبيق وضع الألعاب..."
+) {
+applyAdvancedGameMode()
+} {
+isGameModeActive = true
+gameOptText.text = "🎮 وضع الألعاب: مفعل"
+gameOptText.startAnimation(createPulseAnimation())
+statusText.text = "الحالة: 🎮 وضع الألعاب مفعل"
 }
 }
 }
 
 // === تحسين الرسومات العميق ===
 val btnGraphics = Button(this).apply {
-text = "🎨 تحسين الرسومات العميق"
+text = graphicsLabel
 setBackgroundColor(Color.parseColor("#7C3AED"))
 setTextColor(Color.WHITE)
 textSize = 14f
@@ -405,16 +476,25 @@ setMargins(0, 12, 0, 12)
 }
 setPadding(25, 25, 25, 25)
 setOnClickListener {
+runActionWithFeedback(
+actionKey = "graphics",
+button = btnGraphics,
+baseLabel = graphicsLabel,
+baseColor = Color.parseColor("#7C3AED"),
+loadingMessage = "جارٍ تحسين الرسومات..."
+) {
 applyDeepGraphicsOptimization()
-statusText.text = "الحالة: 🎨 تحسين رسومات عميق مفعل"
-gpuText.text = "🎨 GPU: تحسين عميق نشط!"
+} {
+statusText.text = "الحالة: 🎨 تحسين الرسومات مفعل"
+gpuText.text = "🎨 GPU: تحسين الرسومات نشط"
 gpuText.startAnimation(createPulseAnimation())
+}
 }
 }
 
 // === تقليل التأخير والـ Lag ===
 val btnLagReduce = Button(this).apply {
-text = "⚡ تقليل التأخير (Input Lag)"
+text = lagLabel
 setBackgroundColor(Color.parseColor("#EC4899"))
 setTextColor(Color.WHITE)
 textSize = 14f
@@ -427,14 +507,23 @@ setMargins(0, 12, 0, 12)
 }
 setPadding(25, 25, 25, 25)
 setOnClickListener {
+runActionWithFeedback(
+actionKey = "lag",
+button = btnLagReduce,
+baseLabel = lagLabel,
+baseColor = Color.parseColor("#EC4899"),
+loadingMessage = "جارٍ تقليل التأخير..."
+) {
 reduceLagAndLatency()
+} {
 statusText.text = "الحالة: ⚡ تقليل التأخير مفعل"
+}
 }
 }
 
 // === تحسين الحرارة والبطارية ===
 val btnCooling = Button(this).apply {
-text = "❄️ تحسين التبريد والبطارية"
+text = coolingLabel
 setBackgroundColor(Color.parseColor("#06B6D4"))
 setTextColor(Color.BLACK)
 textSize = 14f
@@ -447,15 +536,24 @@ setMargins(0, 12, 0, 12)
 }
 setPadding(25, 25, 25, 25)
 setOnClickListener {
+runActionWithFeedback(
+actionKey = "cooling",
+button = btnCooling,
+baseLabel = coolingLabel,
+baseColor = Color.parseColor("#06B6D4"),
+loadingMessage = "جارٍ تطبيق تحسين التبريد..."
+) {
 optimizeCoolingAndBattery()
+} {
 statusText.text = "الحالة: ❄️ تحسين التبريد نشط"
 thermalText.startAnimation(createPulseAnimation())
+}
 }
 }
 
 // === تنظيف الرام ===
 val btnBoost = Button(this).apply {
-text = "🧹 تنظيف الرام الفوري"
+text = ramLabel
 setBackgroundColor(Color.parseColor("#00D4FF"))
 setTextColor(Color.BLACK)
 textSize = 14f
@@ -468,15 +566,24 @@ setMargins(0, 12, 0, 12)
 }
 setPadding(25, 25, 25, 25)
 setOnClickListener {
+runActionWithFeedback(
+actionKey = "ram",
+button = btnBoost,
+baseLabel = ramLabel,
+baseColor = Color.parseColor("#00D4FF"),
+loadingMessage = "جارٍ تنظيف الرام..."
+) {
 boostRamCleanup()
-statusText.text = "الحالة: 🧹 تم تنظيف الرام بنجاح"
+} {
+statusText.text = "الحالة: 🧹 تم تنظيف الرام"
 ramText.startAnimation(createPulseAnimation())
+}
 }
 }
 
 // === وضع متوازن ===
 val btnBalance = Button(this).apply {
-text = "⚙️ وضع متوازن"
+text = balancedLabel
 setBackgroundColor(Color.parseColor("#9370DB"))
 setTextColor(Color.WHITE)
 textSize = 14f
@@ -489,9 +596,18 @@ setMargins(0, 12, 0, 12)
 }
 setPadding(25, 25, 25, 25)
 setOnClickListener {
+runActionWithFeedback(
+actionKey = "balanced",
+button = btnBalance,
+baseLabel = balancedLabel,
+baseColor = Color.parseColor("#9370DB"),
+loadingMessage = "جارٍ تطبيق الوضع المتوازن..."
+) {
 applyBalancedMode()
-statusText.text = "الحالة: ⚙️ وضع متوازن نشط"
-fpsText.text = "⚡ FPS: 90 FPS متوازن"
+} {
+statusText.text = "الحالة: ⚙️ الوضع المتوازن مفعل"
+fpsText.text = "⚡ FPS: نمط متوازن مفعل"
+}
 }
 }
 
@@ -510,11 +626,31 @@ setMargins(0, 12, 0, 12)
 }
 setPadding(25, 25, 25, 25)
 setOnClickListener {
+runActionWithFeedback(
+actionKey = "reset",
+button = btnReset,
+baseLabel = "🔄 العودة للافتراضي",
+baseColor = Color.parseColor("#FFD700"),
+loadingMessage = "جارٍ إعادة الإعدادات...",
+showCheckmark = false
+) {
 resetToDefault()
-btnFps.text = "⚡ تثبيت FPS - 120+ FPS"
+} {
+btnFps.text = fpsLabel
 btnFps.setBackgroundColor(Color.parseColor("#FF3B30"))
-btnGameMode.text = "🎮 وضع الألعاب الاحترافي"
+btnGameMode.text = gameLabel
 btnGameMode.setBackgroundColor(Color.parseColor("#FF1744"))
+btnGraphics.text = graphicsLabel
+btnGraphics.setBackgroundColor(Color.parseColor("#7C3AED"))
+btnLagReduce.text = lagLabel
+btnLagReduce.setBackgroundColor(Color.parseColor("#EC4899"))
+btnCooling.text = coolingLabel
+btnCooling.setBackgroundColor(Color.parseColor("#06B6D4"))
+btnBoost.text = ramLabel
+btnBoost.setBackgroundColor(Color.parseColor("#00D4FF"))
+btnBalance.text = balancedLabel
+btnBalance.setBackgroundColor(Color.parseColor("#9370DB"))
+actionApplied.clear()
 statusText.text = "الحالة: 🟢 وضع عادي"
 fpsText.text = "⚡ FPS: 60 FPS"
 gameOptText.text = "🎮 وضع الألعاب: غير مفعل"
@@ -522,6 +658,8 @@ fpsText.clearAnimation()
 gameOptText.clearAnimation()
 isFpsBooted = false
 isGameModeActive = false
+updateOptimizationStateText()
+}
 }
 }
 
@@ -562,8 +700,79 @@ scrollView.addView(mainLayout)
 setContentView(scrollView)
 }
 
+private fun runActionWithFeedback(
+actionKey: String,
+button: Button,
+baseLabel: String,
+baseColor: Int,
+loadingMessage: String,
+showCheckmark: Boolean = true,
+action: () -> Unit,
+onCompleted: () -> Unit = {}
+) {
+if (runningActionKeys.contains(actionKey)) {
+statusText.text = "الحالة: ⏳ العملية قيد التنفيذ بالفعل"
+return
+}
+runningActionKeys.add(actionKey)
+runningActions.incrementAndGet()
+loadingSpinner.visibility = View.VISIBLE
+statusText.text = "الحالة: ⏳ $loadingMessage"
+button.text = "⏳ $baseLabel"
+button.setBackgroundColor(baseColor)
+
+actionExecutor.execute {
+val success = try {
+action()
+true
+} catch (e: Exception) {
+false
+}
+runOnUiThread {
+runningActionKeys.remove(actionKey)
+val remaining = runningActions.updateAndGet { current ->
+if (current > 0) current - 1 else 0
+}
+if (remaining == 0) loadingSpinner.visibility = View.GONE
+
+if (success) {
+if (showCheckmark) {
+actionApplied[actionKey] = true
+button.text = "✅ $baseLabel"
+button.setBackgroundColor(Color.parseColor("#34C759"))
+} else {
+button.text = baseLabel
+button.setBackgroundColor(baseColor)
+}
+onCompleted()
+} else {
+button.text = baseLabel
+button.setBackgroundColor(baseColor)
+statusText.text = "الحالة: ⚠️ تعذر تنفيذ العملية"
+}
+updateOptimizationStateText()
+}
+}
+}
+
+private fun updateOptimizationStateText() {
+val active = mutableListOf<String>()
+if (actionApplied["fps"] == true) active.add("تثبيت FPS")
+if (actionApplied["game"] == true) active.add("وضع الألعاب")
+if (actionApplied["graphics"] == true) active.add("تحسين الرسومات")
+if (actionApplied["lag"] == true) active.add("تقليل التأخير")
+if (actionApplied["cooling"] == true) active.add("تحسين التبريد")
+if (actionApplied["ram"] == true) active.add("تنظيف الرام")
+if (actionApplied["balanced"] == true) active.add("الوضع المتوازن")
+
+optimizationStateText.text = if (active.isEmpty()) {
+"🎯 التحكم بالثبات: لم يتم تفعيل أي تحسين بعد."
+} else {
+"🎯 التحكم بالثبات: ${active.joinToString(" • ")}\n✅ التحسينات نشطة بهدف الحفاظ على سلاسة اللعب واستقرار الفريمات قدر الإمكان."
+}
+}
+
 private fun applyMaxFpsBoost() {
-thread {
 runRootCommand("setprop debug.gr.swapinterval 0")
 runRootCommand("setprop ro.hwui.drop_shadow_cache_size 6")
 runRootCommand("setprop ro.hwui.gradient_cache_size 1")
@@ -575,10 +784,8 @@ runRootCommand("setprop ro.surface_flinger.max_frame_buffer_acquired_buffers 3")
 runRootCommand("sync")
 runRootCommand("echo 3 > /proc/sys/vm/drop_caches")
 }
-}
 
 private fun applyAdvancedGameMode() {
-thread {
 // إعدادات أساسية للألعاب
 runRootCommand("setprop debug.gr.swapinterval 0")
 runRootCommand("setprop ro.hwui.layer_cache_size 48")
@@ -606,10 +813,8 @@ runRootCommand("pm disable --user 0 com.android.chrome || true")
 // حذف ملفات مؤقتة
 runRootCommand("sync && echo 3 > /proc/sys/vm/drop_caches")
 }
-}
 
 private fun applyDeepGraphicsOptimization() {
-thread {
 // تحسين محرك الرسومات
 runRootCommand("setprop ro.hwui.drop_shadow_cache_size 6")
 runRootCommand("setprop ro.hwui.gradient_cache_size 1")
@@ -630,10 +835,8 @@ runRootCommand("setprop ro.surface_flinger.protected_contents true")
 runRootCommand("setprop ro.hwui.print_config 0")
 runRootCommand("sync")
 }
-}
 
 private fun reduceLagAndLatency() {
-thread {
 // تقليل تأخير الإدخال
 runRootCommand("setprop ro.input.vid_enabled true")
 runRootCommand("setprop ro.qti.sensors.max_accel_rate 50")
@@ -649,10 +852,8 @@ runRootCommand("setprop ro.hardware.keystore msm8974")
 runRootCommand("setprop debug.gr.swapinterval 0")
 runRootCommand("setprop ro.surface_flinger.vsync_event_phase_offset_ns 0")
 }
-}
 
 private fun optimizeCoolingAndBattery() {
-thread {
 // تحسين إدارة الحرارة
 runRootCommand("setprop persist.sys.usb.config mtp,adb")
 runRootCommand("setprop ro.vendor.thermal.polling_delay 10000")
@@ -667,10 +868,8 @@ runRootCommand("setprop ro.vendor.extension_library /vendor/lib/rfsa/adsp/libfas
 // تحسين إدارة الذاكرة
 runRootCommand("sync && echo 2 > /proc/sys/vm/drop_caches")
 }
-}
 
 private fun boostRamCleanup() {
-thread {
 runRootCommand("sync")
 runRootCommand("echo 1 > /proc/sys/vm/drop_caches")
 runRootCommand("echo 2 > /proc/sys/vm/drop_caches")
@@ -678,25 +877,20 @@ runRootCommand("echo 3 > /proc/sys/vm/drop_caches")
 runRootCommand("killall com.android.systemui || true")
 runRootCommand("am trim-caches 100M || true")
 }
-}
 
 private fun applyBalancedMode() {
-thread {
 runRootCommand("setprop debug.gr.swapinterval 1")
 runRootCommand("settings put system peak_refresh_rate 90.0")
 runRootCommand("settings put system user_refresh_rate 90.0")
 runRootCommand("sync && echo 2 > /proc/sys/vm/drop_caches")
 }
-}
 
 private fun resetToDefault() {
-thread {
 runRootCommand("settings delete system peak_refresh_rate")
 runRootCommand("settings delete system user_refresh_rate")
 runRootCommand("setprop debug.gr.swapinterval -1")
 runRootCommand("pm enable --user 0 com.google.android.gms || true")
 runRootCommand("pm enable --user 0 com.android.chrome || true")
-}
 }
 
 private fun startSystemMonitoring() {
@@ -792,5 +986,6 @@ thermalZone
 override fun onDestroy() {
 super.onDestroy()
 isRunning = false
+actionExecutor.shutdown()
 }
 }
