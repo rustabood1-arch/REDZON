@@ -38,6 +38,8 @@ private lateinit var infoCard: LinearLayout
 @Volatile private var isFpsBooted = false
 @Volatile private var isGameModeActive = false
 @Volatile private var currentTemp = 0
+@Volatile private var isOxideFpsApplied = false
+private var oxideContentVisible = false
 
 override fun onCreate(savedInstanceState: Bundle?) {
 super.onCreate(savedInstanceState)
@@ -526,7 +528,166 @@ isGameModeActive = false
 }
 
 dashLayout.addView(infoCard)
-dashLayout.addView(btnFps)
+
+        // ===== قسم Oxide Survival (قابل للفتح والطوي) =====
+        val oxideSectionHeader = Button(this).apply {
+            text = "🟠 Oxide Survival ▶"
+            setBackgroundColor(Color.parseColor("#2A1A0A"))
+            setTextColor(Color.parseColor("#FF8C00"))
+            textSize = 15f
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, 16, 0, 0) }
+            setPadding(25, 22, 25, 22)
+            gravity = Gravity.START or Gravity.CENTER_VERTICAL
+        }
+
+        val oxideContentLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.parseColor("#1A1200"))
+            setPadding(20, 16, 20, 16)
+            visibility = View.GONE
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, 0, 0, 8) }
+        }
+
+        val oxideDesc = TextView(this).apply {
+            text = "🎮 تحسينات مخصصة للعبة Oxide Survival\nتساعد على استقرار الأداء قدر الإمكان بناءً على إمكانيات الجهاز."
+            setTextColor(Color.parseColor("#FFCC80"))
+            textSize = 12f
+            setPadding(0, 0, 0, 14)
+        }
+
+        val oxideFpsStatusText = TextView(this).apply {
+            text = "⚡ ثبات 60 FPS: غير مفعل"
+            setTextColor(Color.parseColor("#A0A0A0"))
+            textSize = 12f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, 0, 0, 10)
+        }
+
+        val btnOxideFps = Button(this).apply {
+            text = "🎯 تفعيل ثبات 60 FPS في اللعبة"
+            setBackgroundColor(Color.parseColor("#FF6A00"))
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, 4, 0, 4) }
+            setPadding(20, 20, 20, 20)
+            setOnClickListener {
+                if (!isOxideFpsApplied) {
+                    oxideFpsStatusText.text = "⏳ جاري التطبيق..."
+                    isEnabled = false
+                    thread {
+                        applyOxide60FpsStability()
+                        runOnUiThread {
+                            text = "✅ ثبات 60 FPS نشط"
+                            setBackgroundColor(Color.parseColor("#34C759"))
+                            oxideFpsStatusText.text = "✅ ثبات 60 FPS: مفعل (الأداء يعتمد على الجهاز واللعبة)"
+                            oxideFpsStatusText.setTextColor(Color.parseColor("#34C759"))
+                            isOxideFpsApplied = true
+                            isEnabled = true
+                        }
+                    }
+                } else {
+                    statusText.text = "الحالة: ⚠️ ثبات 60 FPS مفعل بالفعل"
+                }
+            }
+        }
+
+        oxideContentLayout.addView(oxideDesc)
+        oxideContentLayout.addView(oxideFpsStatusText)
+        oxideContentLayout.addView(btnOxideFps)
+
+        oxideSectionHeader.setOnClickListener {
+            if (oxideContentVisible) {
+                oxideContentLayout.visibility = View.GONE
+                oxideSectionHeader.text = "🟠 Oxide Survival ▶"
+                oxideContentVisible = false
+            } else {
+                oxideContentLayout.visibility = View.VISIBLE
+                oxideSectionHeader.text = "🟠 Oxide Survival ▼"
+                oxideContentVisible = true
+            }
+        }
+
+        dashLayout.addView(oxideSectionHeader)
+        dashLayout.addView(oxideContentLayout)
+
+        // ===== صفحة استخدام الجهاز والعمليات المستهلكة =====
+        val usageSectionTitle = TextView(this).apply {
+            text = "📋 نظرة عامة على استخدام الجهاز"
+            setTextColor(Color.parseColor("#00D4FF"))
+            textSize = 16f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, 24, 0, 10)
+        }
+
+        val usageCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.parseColor("#0F1A2A"))
+            setPadding(22, 20, 22, 20)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, 0, 0, 16) }
+        }
+
+        val uptimeLabel = TextView(this).apply {
+            text = "⏱️ مدة تشغيل الجهاز: ${getDeviceUptime()}"
+            setTextColor(Color.parseColor("#87CEEB"))
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, 0, 0, 10)
+        }
+
+        val usageNote = TextView(this).apply {
+            text = "🔍 العمليات والأنشطة المستهلكة للموارد:"
+            setTextColor(Color.parseColor("#FFD700"))
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, 0, 0, 8)
+        }
+
+        val usageDetails = TextView(this).apply {
+            text = getResourceConsumptionDetails()
+            setTextColor(Color.parseColor("#C0C0C0"))
+            textSize = 12f
+            setPadding(0, 0, 0, 10)
+        }
+
+        val usageRefreshBtn = Button(this).apply {
+            text = "🔄 تحديث البيانات"
+            setBackgroundColor(Color.parseColor("#1E3A5F"))
+            setTextColor(Color.parseColor("#00D4FF"))
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, 6, 0, 0) }
+            setPadding(16, 12, 16, 12)
+            setOnClickListener {
+                uptimeLabel.text = "⏱️ مدة تشغيل الجهاز: ${getDeviceUptime()}"
+                usageDetails.text = getResourceConsumptionDetails()
+            }
+        }
+
+        usageCard.addView(uptimeLabel)
+        usageCard.addView(usageNote)
+        usageCard.addView(usageDetails)
+        usageCard.addView(usageRefreshBtn)
+
+        dashLayout.addView(usageSectionTitle)
+        dashLayout.addView(usageCard)
+
+        dashLayout.addView(btnFps)
 dashLayout.addView(btnGameMode)
 dashLayout.addView(btnGraphics)
 dashLayout.addView(btnLagReduce)
@@ -789,7 +950,73 @@ thermalZone
 }
 }
 
-override fun onDestroy() {
+private fun applyOxide60FpsStability() {
+    // تحسينات تستهدف ثبات 60 FPS داخل Oxide Survival
+    // النتيجة تعتمد على الجهاز وحالة اللعبة
+    runRootCommand("settings put system peak_refresh_rate 60.0")
+    runRootCommand("settings put system user_refresh_rate 60.0")
+    runRootCommand("setprop debug.gr.swapinterval 0")
+    runRootCommand("setprop debug.sf.vsync_event_phase_offset_ns 2000000")
+    runRootCommand("setprop persist.sys.layer_cache_size 48")
+    // تنظيف خفيف للذاكرة (page cache فقط) لتجنب بطء مؤقت
+    runRootCommand("sync && echo 1 > /proc/sys/vm/drop_caches")
+}
+
+private fun getDeviceUptime(): String {
+    return try {
+        val uptimeSeconds = android.os.SystemClock.elapsedRealtime() / 1000
+        val hours = uptimeSeconds / 3600
+        val minutes = (uptimeSeconds % 3600) / 60
+        val seconds = uptimeSeconds % 60
+        "${hours}س ${minutes}د ${seconds}ث"
+    } catch (e: Exception) {
+        "غير متاح"
+    }
+}
+
+private fun getResourceConsumptionDetails(): String {
+    val sb = StringBuilder()
+    try {
+        // CPU
+        val cpuUsage = getCpuUsage()
+        sb.appendLine("🔥 المعالج (CPU): $cpuUsage")
+
+        // RAM
+        val ramUsage = getRamUsage()
+        sb.appendLine("💾 الذاكرة (RAM): $ramUsage")
+
+        // GPU
+        val gpuInfo = getGpuUsage()
+        sb.appendLine("🎨 معالج الرسومات (GPU): $gpuInfo")
+
+        // درجة الحرارة
+        val temp = getSystemTemperature()
+        val tempStatus = when {
+            temp > 45 -> "مرتفعة - قد يؤثر على الأداء"
+            temp > 40 -> "ساخنة - مراقبة مستمرة"
+            temp > 35 -> "دافئة - طبيعي"
+            else -> "ممتازة"
+        }
+        sb.appendLine("🌡️ الحرارة: ${temp}°C ($tempStatus)")
+
+        // حالة الشاشة وإعداد معدل التحديث
+        sb.appendLine("📱 معدل التحديث: مُحسَّن حسب الإعدادات")
+
+        // ملاحظات الأداء
+        sb.appendLine("")
+        sb.appendLine("📌 ملاحظات:")
+        if (isFpsBooted) sb.appendLine("  • وضع الأداء الكامل: مفعل")
+        if (isGameModeActive) sb.appendLine("  • وضع الألعاب: مفعل")
+        if (isOxideFpsApplied) sb.appendLine("  • ثبات 60 FPS (Oxide): مفعل")
+        if (!isFpsBooted && !isGameModeActive && !isOxideFpsApplied)
+            sb.appendLine("  • لا توجد تحسينات مفعلة حالياً")
+    } catch (e: Exception) {
+        sb.appendLine("تعذر قراءة بعض البيانات")
+    }
+    return sb.toString().trimEnd()
+}
+
+    override fun onDestroy() {
 super.onDestroy()
 isRunning = false
 }
