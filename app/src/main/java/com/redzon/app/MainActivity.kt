@@ -609,6 +609,7 @@ class MainActivity : Activity() {
                 runOnUiThread {
                     btnOxideFps.text = "✅ ثبات 60 FPS مفعل لـ Oxide"
                     btnOxideFps.setBackgroundColor(Color.parseColor("#34C759"))
+                    btnOxideFps.isEnabled = true
                     oxideFpsStatusText.text = "⚡ حالة ثبات FPS: 🟢 نشط (استقرار مُحسَّن)"
                     oxideFpsStatusText.startAnimation(createPulseAnimation())
                     statusText.text = "الحالة: 🌿 Oxide Survival - ثبات 60 FPS"
@@ -830,21 +831,19 @@ class MainActivity : Activity() {
     }
 
     private fun applyAdvancedGameMode() {
-        thread {
-            runRootCommand("setprop debug.gr.swapinterval 0")
-            runRootCommand("setprop ro.hwui.layer_cache_size 48")
-            runRootCommand("setprop ro.hwui.path_cache_size 32")
-            runRootCommand("setprop ro.hwui.r_buffer_cache_size 8")
-            runRootCommand("setprop ro.vendor.gpu.hal qti")
-            runRootCommand("setprop ro.qualcomm.gpu.adreno_stacksize_kb 512")
-            runRootCommand("settings put system peak_refresh_rate 120.0")
-            runRootCommand("settings put system user_refresh_rate 120.0")
-            runRootCommand("setprop ro.vendor.vm.swappiness 60")
-            runRootCommand("setprop ro.input.vid_enabled true")
-            runRootCommand("pm disable --user 0 com.google.android.gms || true")
-            runRootCommand("pm disable --user 0 com.android.chrome || true")
-            runRootCommand("sync && echo 3 > /proc/sys/vm/drop_caches")
-        }
+        runRootCommand("setprop debug.gr.swapinterval 0")
+        runRootCommand("setprop ro.hwui.layer_cache_size 48")
+        runRootCommand("setprop ro.hwui.path_cache_size 32")
+        runRootCommand("setprop ro.hwui.r_buffer_cache_size 8")
+        runRootCommand("setprop ro.vendor.gpu.hal qti")
+        runRootCommand("setprop ro.qualcomm.gpu.adreno_stacksize_kb 512")
+        runRootCommand("settings put system peak_refresh_rate 120.0")
+        runRootCommand("settings put system user_refresh_rate 120.0")
+        runRootCommand("setprop ro.vendor.vm.swappiness 60")
+        runRootCommand("setprop ro.input.vid_enabled true")
+        runRootCommand("pm disable --user 0 com.google.android.gms || true")
+        runRootCommand("pm disable --user 0 com.android.chrome || true")
+        runRootCommand("sync && echo 3 > /proc/sys/vm/drop_caches")
     }
 
     private fun applyDeepGraphicsOptimization() {
@@ -1008,14 +1007,19 @@ class MainActivity : Activity() {
         return try {
             val file = File("/proc/stat")
             if (file.exists()) {
-                val lines = file.readLines()
-                if (lines.isNotEmpty()) {
-                    val toks = lines[0].split("\\s+".toRegex())
+                fun readCpuStats(): Pair<Long, Long> {
+                    val toks = file.readLines()[0].split("\\s+".toRegex())
                     val idle = toks[4].toLong()
                     val total = toks.slice(1..7).map { it.toLong() }.sum()
-                    val usage = ((total - idle) * 100 / total).toInt()
-                    "$usage%"
-                } else "15%"
+                    return Pair(idle, total)
+                }
+                val (idle1, total1) = readCpuStats()
+                Thread.sleep(200)
+                val (idle2, total2) = readCpuStats()
+                val idleDelta = idle2 - idle1
+                val totalDelta = total2 - total1
+                val usage = if (totalDelta > 0) ((totalDelta - idleDelta) * 100 / totalDelta).toInt() else 0
+                "$usage%"
             } else "12%"
         } catch (e: Exception) {
             "10%"
