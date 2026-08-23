@@ -208,7 +208,7 @@ setPadding(0, 15, 0, 35)
 }
 
 val welcomeDesc = TextView(this).apply {
-text = "تطبيق متخصص لتحسين وتثبيت الـ FPS\n⚡ أداء عالي | 🚀 سرعة فائقة | 💎 جودة ممتازة"
+text = "تطبيق متخصص لتحسين ثبات الـ FPS\n🎯 هدف 60 ثابت قدر الإمكان | 🚀 أداء أفضل | 💎 تجربة لعب أنعم"
 setTextColor(Color.parseColor("#A0A0A0"))
 textSize = 14f
 gravity = Gravity.CENTER
@@ -285,7 +285,7 @@ setPadding(0, 6, 0, 6)
 }
 
 fpsText = TextView(this).apply {
-text = "⚡ FPS: 60 FPS"
+text = "⚡ FPS: هدف 60 FPS ثابت"
 setTextColor(Color.parseColor("#FF3B30"))
 textSize = 13f
 typeface = Typeface.DEFAULT_BOLD
@@ -334,7 +334,7 @@ infoCard.addView(statusText)
 
 // === زر تثبيت FPS الرئيسي ===
 val btnFps = Button(this).apply {
-text = "⚡ تثبيت FPS - 120+ FPS"
+text = "⚡ تفعيل وضع ثبات 60 FPS"
 setBackgroundColor(Color.parseColor("#FF3B30"))
 setTextColor(Color.WHITE)
 textSize = 14f
@@ -348,15 +348,24 @@ setMargins(0, 12, 0, 12)
 setPadding(25, 25, 25, 25)
 setOnClickListener {
 if (!isFpsBooted) {
-applyMaxFpsBoost()
-btnFps.text = "✅ نشط - 120+ FPS"
+btnFps.isEnabled = false
+btnFps.text = "⏳ جاري تطبيق وضع ثبات 60 FPS..."
+applyStable60FpsLock { success ->
+btnFps.isEnabled = true
+if (success) {
+btnFps.text = "✅ نشط - ثبات 60 FPS"
 btnFps.setBackgroundColor(Color.parseColor("#34C759"))
-statusText.text = "الحالة: 🔥 وضع الأداء الكامل"
-fpsText.text = "⚡ FPS: 120+ FPS ✨"
+statusText.text = "الحالة: 🔥 وضع ثبات 60 FPS مفعل"
+fpsText.text = "⚡ FPS: هدف ثابت قرب 60 FPS ✨"
 fpsText.startAnimation(createPulseAnimation())
 isFpsBooted = true
 } else {
-statusText.text = "الحالة: ⚠️ وضع الأداء مفعل"
+btnFps.text = "⚡ تفعيل وضع ثبات 60 FPS"
+statusText.text = "الحالة: ⚠️ فشل تطبيق وضع ثبات 60 FPS"
+}
+}
+} else {
+statusText.text = "الحالة: ⚠️ وضع ثبات 60 FPS مفعل بالفعل"
 }
 }
 }
@@ -511,12 +520,13 @@ setMargins(0, 12, 0, 12)
 setPadding(25, 25, 25, 25)
 setOnClickListener {
 resetToDefault()
-btnFps.text = "⚡ تثبيت FPS - 120+ FPS"
+btnFps.text = "⚡ تفعيل وضع ثبات 60 FPS"
 btnFps.setBackgroundColor(Color.parseColor("#FF3B30"))
+btnFps.isEnabled = true
 btnGameMode.text = "🎮 وضع الألعاب الاحترافي"
 btnGameMode.setBackgroundColor(Color.parseColor("#FF1744"))
 statusText.text = "الحالة: 🟢 وضع عادي"
-fpsText.text = "⚡ FPS: 60 FPS"
+fpsText.text = "⚡ FPS: هدف 60 FPS ثابت"
 gameOptText.text = "🎮 وضع الألعاب: غير مفعل"
 fpsText.clearAnimation()
 gameOptText.clearAnimation()
@@ -562,18 +572,24 @@ scrollView.addView(mainLayout)
 setContentView(scrollView)
 }
 
-private fun applyMaxFpsBoost() {
+private fun applyStable60FpsLock(onComplete: (Boolean) -> Unit) {
 thread {
-runRootCommand("setprop debug.gr.swapinterval 0")
-runRootCommand("setprop ro.hwui.drop_shadow_cache_size 6")
-runRootCommand("setprop ro.hwui.gradient_cache_size 1")
-runRootCommand("setprop ro.hwui.layer_cache_size 48")
-runRootCommand("setprop ro.hwui.path_cache_size 32")
-runRootCommand("settings put system peak_refresh_rate 120.0")
-runRootCommand("settings put system user_refresh_rate 120.0")
-runRootCommand("setprop ro.surface_flinger.max_frame_buffer_acquired_buffers 3")
-runRootCommand("sync")
-runRootCommand("echo 3 > /proc/sys/vm/drop_caches")
+val commands = listOf(
+"setprop debug.gr.swapinterval 1",
+"setprop ro.hwui.drop_shadow_cache_size 6",
+"setprop ro.hwui.gradient_cache_size 1",
+"setprop ro.hwui.layer_cache_size 48",
+"setprop ro.hwui.path_cache_size 32",
+"settings put system min_refresh_rate 60.0",
+"settings put system peak_refresh_rate 60.0",
+"settings put system user_refresh_rate 60.0",
+"setprop ro.surface_flinger.max_frame_buffer_acquired_buffers 3",
+"setprop ro.surface_flinger.vsync_event_phase_offset_ns 0",
+"sync",
+"echo 3 > /proc/sys/vm/drop_caches"
+)
+val success = commands.map { runRootCommand(it) }.all { it }
+runOnUiThread { onComplete(success) }
 }
 }
 
@@ -723,9 +739,9 @@ thermalText.text = "🌡️ الحرارة: ${temp}°C - $tempStatus"
 }
 if (::fpsText.isInitialized) {
 val fps = when {
-isFpsBooted -> "120+ FPS ✨"
-isGameModeActive -> "120+ FPS 🎮"
-else -> "60 FPS"
+isFpsBooted -> "قرب 60 FPS ثابت ✨"
+isGameModeActive -> "ثبات أعلى للألعاب 🎮"
+else -> "هدف 60 FPS"
 }
 fpsText.text = "⚡ FPS: $fps"
 }
