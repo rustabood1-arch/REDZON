@@ -724,7 +724,7 @@ thermalText.text = "🌡️ الحرارة: ${temp}°C - $tempStatus"
 if (::fpsText.isInitialized) {
 val fps = when {
 isFpsBooted -> "ثبات قريب من 60 FPS ✨"
-isGameModeActive -> "120+ FPS 🎮"
+isGameModeActive -> "ثبات قريب من 60 FPS 🎮"
 else -> "هدف ثبات 60 FPS"
 }
 fpsText.text = "⚡ FPS: $fps"
